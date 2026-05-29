@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Memoria - Símbolos UAEMéx</title>
+    <style>
+        /* Estilos Generales y Colores UAEMéx */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            color: #1a4329; /* Verde institucional */
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .contenedor-juego {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        h1 {
+            color: #1a4329;
+            margin-bottom: 5px;
+            font-size: 2rem;
+        }
+
+        p {
+            color: #555;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        /* Marcador de intentos y aciertos */
+        .marcador {
+            display: inline-block;
+            background-color: #1a4329;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            border: 2px solid #d4a373;
+        }
+
+        .marcador span {
+            color: #d4a373; /* Oro */
+            margin: 0 10px;
+        }
+
+        /* El Contenedor del Tablero (Cuadrícula de 4x4) */
+        #tablero-memoria {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 15px; 
+            perspective: 1000px; /* Crucial para el efecto 3D */
+            margin-bottom: 30px;
+        }
+
+        /* Estructura de la Carta */
+        .carta {
+            height: 140px;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d; 
+            transition: transform 0.6s; 
+        }
+
+        .carta.volteada {
+            transform: rotateY(180deg);
+        }
+
+        .carta.emparejada {
+            transform: rotateY(180deg) scale(0.95);
+            cursor: default;
+            opacity: 0.85;
+        }
+
+        /* Caras de la carta (Ambas comparten esto) */
+        .cara-atras, .cara-frente {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 12px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Cara de atrás (Verde UAEMéx) */
+        .cara-atras {
+            background-color: #1a4329;
+            color: #d4a373; 
+            border: 3px solid #d4a373;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+        }
+
+        /* Cara de frente (El contenido revelado) */
+        .cara-frente {
+            background-color: #ffffff;
+            color: #222;
+            border: 3px solid #1a4329;
+            transform: rotateY(180deg); 
+            overflow: hidden;
+            line-height: 1.3;
+        }
+
+        /* Botón de reinicio */
+        .btn-reiniciar {
+            background-color: #d4a373;
+            color: #1a4329;
+            border: 2px solid #1a4329;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .btn-reiniciar:hover {
+            background-color: #1a4329;
+            color: #d4a373;
+            border-color: #d4a373;
+        }
+
+        /* Responsivo para pantallas móviles */
+        @media (max-width: 600px) {
+            #tablero-memoria {
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 10px;
+            }
+            .carta {
+                height: 120px;
+            }
+            .cara-frente {
+                font-size: 0.85rem;
+                padding: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-juego">
+        <h1>Símbolos Universitarios UAEMéx</h1>
+        <p>Actividad Interactiva: Encuentra el símbolo correspondiente con su descripción histórica.</p>
+
+        <div class="marcador">
+            Intentos: <span id="contador-intentos">0</span> | Parejas: <span id="contador-parejas">0/8</span>
+        </div>
+
+        <div id="tablero-memoria"></div>
+
+        <div>
+            <button class="btn-reiniciar" onclick="reiniciarJuego()">Reiniciar Tablero</button>
+        </div>
+    </div>
+
+    <script>
+        const datosCartas = [
+            { id: "escudo", texto: "Escudo de la UAEMéx" },
+            { id: "escudo", texto: "Emblema con el lema 'Patria, Ciencia y Trabajo' y la estrella verde de cinco puntas." },
+            
+            { id: "maestros", texto: "Monumento a los Maestros" },
+            { id: "maestros", texto: "Escultura ubicada en el Edificio de Rectoría que rinde homenaje a la labor de los docentes institutenses." },
+            
+            { id: "autonomia", texto: "Monumento a la Autonomía" },
+            { id: "autonomia", texto: "Obra titulada 'Tocando el Sol' que simboliza la libertad de cátedra e investigación ganada en 1944." },
+            
+            { id: "mora", texto: "Árbol de la Mora" },
+            { id: "mora", texto: "Testigo viviente de la historia universitaria en el patio central, plantado en el siglo XIX." },
+            
+            { id: "lopez-mateos", texto: "Cabeza de Adolfo López Mateos" },
+            { id: "lopez-mateos", texto: "Monumento de cantera esculpido por Adolfo Villa en lo alto del Cerro de Coatepec en Ciudad Universitaria." },
+            
+            { id: "himno", texto: "Himno Institucional" },
+            { id: "himno", texto: "Canto solemne escrito por Horacio Zúñiga y musicalizado por Felipe Villanueva que da identidad a la comunidad." },
+            
+            { id: "rectoria", texto: "Edificio Histórico de Rectoría" },
+            { id: "rectoria", texto: "Joya neoclásica en Toluca, antiguo Beaterio y sede del glorioso Instituto Científico y Literario." },
+            
+            { id: "naranjos", texto: "Jardín de los Naranjos" },
+            { id: "naranjos", texto: "Emblemático patio interior de Rectoría, espacio tradicional de reunión y vida académica." }
+        ];
+
+        let cartasVolteadas = [];
+        let bloqueandoTablero = false;
+        let intentos = 0;
+        let parejasEncontradas = 0;
+
+        function iniciarTablero() {
+            const tablero = document.getElementById("tablero-memoria");
+            tablero.innerHTML = ""; 
+            
+            let cartasBarajadas = [...datosCartas];
+            for (let i = cartasBarajadas.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cartasBarajadas[i], cartasBarajadas[j]] = [cartasBarajadas[j], cartasBarajadas[i]];
+            }
+
+            cartasBarajadas.forEach(data => {
+                const elementoCarta = document.createElement("div");
+                elementoCarta.classList.add("carta");
+                elementoCarta.dataset.simbolo = data.id;
+
+                elementoCarta.innerHTML = `
+                    <div class="cara-atras">UAEMéx</div>
+                    <div class="cara-frente">${data.texto}</div>
+                `;
+
+                elementoCarta.addEventListener("click", voltearCarta);
+                tablero.appendChild(elementoCarta);
+            });
+        }
+
+        function voltearCarta() {
+            if (bloqueandoTablero) return; 
+            if (this === cartasVolteadas[0]) return; 
+
+            this.classList.add("volteada");
+
+            if (cartasVolteadas.length === 0) {
+                cartasVolteadas.push(this);
+                return;
+            }
+
+            cartasVolteadas.push(this);
+            intentos++;
+            document.getElementById("contador-intentos").innerText = intentos;
+
+            verificarPareja();
+        }
+
+        function verificarPareja() {
+            const [carta1, carta2] = cartasVolteadas;
+            
+            if (carta1.dataset.simbolo === carta2.dataset.simbolo) {
+                marcarParejaCorrecta(carta1, carta2);
+            } else {
+                ocultarCartasIncorrectas(carta1, carta2);
+            }
+        }
+
+        function marcarParejaCorrecta(carta1, carta2) {
+            carta1.classList.add("emparejada");
+            carta2.classList.add("emparejada");
+            
+            carta1.removeEventListener("click", voltearCarta);
+            carta2.removeEventListener("click", voltearCarta);
+
+            parejasEncontradas++;
+            document.getElementById("contador-parejas").innerText = `${parejasEncontradas}/8`;
+
+            resetearSeleccion();
+
+            if (parejasEncontradas === 8) {
+                setTimeout(() => {
+                    alert(`¡Felicidades, docente! Has completado el tablero en ${intentos} intentos. ¡Excelente conocimiento de nuestra institución!`);
+                }, 500);
+            }
+        }
+
+        function ocultarCartasIncorrectas(carta1, carta2) {
+            bloqueandoTablero = true;
+            setTimeout(() => {
+                carta1.classList.remove("volteada");
+                carta2.classList.remove("volteada");
+                resetearSeleccion();
+            }, 1500);
+        }
+
+        function resetearSeleccion() {
+            cartasVolteadas = [];
+            bloqueandoTablero = false;
+        }
+
+        function reiniciarJuego() {
+            intentos = 0;
+            parejasEncontradas = 0;
+            document.getElementById("contador-intentos").innerText = intentos;
+            document.getElementById("contador-parejas").innerText = "0/8";
+            iniciarTablero();
+        }
+
+        window.onload = iniciarTablero;
+    </script>
+</body>
+</html>
