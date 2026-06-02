@@ -3,296 +3,1026 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Memoria - Símbolos UAEMéx</title>
+    <title>Misión Escape: Atrapados en el Equipo Imposible</title>
     <style>
-        /* Estilos Generales y Colores UAEMéx */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f4;
-            color: #1a4329; /* Verde institucional */
-            text-align: center;
-            padding: 20px;
-            margin: 0;
+        /* --- VARIABLES DE DISEÑO GAMIFICADO (AZUL OSCURO, MORADO Y DORADO) --- */
+        :root {
+            --bg-space: #070913;
+            --bg-panel: #0f1123;
+            --bg-input: #171a34;
+            --color-primary: #6366f1;
+            --color-accent: #a855f7;
+            --color-gold: #f59e0b;
+            --color-gold-glow: #fbbf24;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-glow: #312e81;
+            --success: #10b981;
+            --error: #ef4444;
         }
 
-        .contenedor-juego {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 10px;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-space);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+        }
+
+        /* --- CONTENEDOR ESCAPE ROOM --- */
+        .escape-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-panel);
+            border: 2px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 15px rgba(168, 85, 247, 0.1);
+            position: relative;
+        }
+
+        /* --- SISTEMA DE PANTALLAS --- */
+        .screen {
+            display: none;
+            animation: areaReveal 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes areaReveal {
+            from { opacity: 0; transform: scale(0.96) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* --- INTERFAZ DE LOGOS Y TITULARES --- */
+        .game-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .room-icon {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            filter: drop-shadow(0 0 10px var(--color-primary));
         }
 
         h1 {
-            color: #1a4329;
-            margin-bottom: 5px;
-            font-size: 2rem;
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #fff 30%, var(--color-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
-        p {
-            color: #555;
-            margin-bottom: 25px;
+        h2 {
             font-size: 1.1rem;
-        }
-
-        /* Marcador de intentos y aciertos */
-        .marcador {
-            display: inline-block;
-            background-color: #1a4329;
-            color: #ffffff;
-            padding: 10px 20px;
-            border-radius: 20px;
+            color: var(--text-muted);
+            font-weight: 400;
             margin-bottom: 20px;
-            font-weight: bold;
-            border: 2px solid #d4a373;
         }
 
-        .marcador span {
-            color: #d4a373; /* Oro */
-            margin: 0 10px;
-        }
-
-        /* El Contenedor del Tablero (Cuadrícula de 4x4) */
-        #tablero-memoria {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 15px; 
-            perspective: 1000px; /* Crucial para el efecto 3D */
+        .story-box {
+            background: rgba(23, 26, 52, 0.6);
+            border-left: 4px solid var(--color-accent);
+            padding: 20px;
+            border-radius: 0 12px 12px 0;
+            line-height: 1.6;
             margin-bottom: 30px;
-        }
-
-        /* Estructura de la Carta */
-        .carta {
-            height: 140px;
-            cursor: pointer;
-            position: relative;
-            transform-style: preserve-3d; 
-            transition: transform 0.6s; 
-        }
-
-        .carta.volteada {
-            transform: rotateY(180deg);
-        }
-
-        .carta.emparejada {
-            transform: rotateY(180deg) scale(0.95);
-            cursor: default;
-            opacity: 0.85;
-        }
-
-        /* Caras de la carta (Ambas comparten esto) */
-        .cara-atras, .cara-frente {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 0.95rem;
-            font-weight: bold;
-            border-radius: 8px;
-            padding: 12px;
-            box-sizing: border-box;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
-        /* Cara de atrás (Verde UAEMéx) */
-        .cara-atras {
-            background-color: #1a4329;
-            color: #d4a373; 
-            border: 3px solid #d4a373;
-            font-size: 1.2rem;
+        /* --- FORMULARIOS DE ACCESO --- */
+        .input-block {
+            margin-bottom: 22px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 9px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-gold);
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-input);
+            border: 2px solid var(--border-glow);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+
+        /* --- DASHBOARD DE CONTROL DE MESA (PROGRESO, LLAVES Y TIEMPO) --- */
+        .hud-dashboard {
+            background: var(--bg-input);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .hud-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
             letter-spacing: 1px;
         }
 
-        /* Cara de frente (El contenido revelado) */
-        .cara-frente {
-            background-color: #ffffff;
-            color: #222;
-            border: 3px solid #1a4329;
-            transform: rotateY(180deg); 
-            overflow: hidden;
-            line-height: 1.3;
-        }
-
-        /* Botón de reinicio */
-        .btn-reiniciar {
-            background-color: #d4a373;
-            color: #1a4329;
-            border: 2px solid #1a4329;
-            padding: 12px 25px;
-            font-size: 1rem;
+        .hud-value {
+            font-size: 1.1rem;
             font-weight: bold;
+        }
+
+        .hud-timer {
+            font-family: monospace;
+            color: var(--color-gold);
+            font-size: 1.3rem;
+        }
+
+        /* BARRA DE PROGRESO */
+        .bar-wrapper {
+            width: 150px;
+            height: 10px;
+            background: var(--bg-space);
             border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid var(--border-glow);
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            transition: width 0.4s ease;
+        }
+
+        /* GRUPO DE LLAVES GAMIFICADAS */
+        .keys-row {
+            display: flex;
+            gap: 8px;
+            font-size: 1.4rem;
+        }
+
+        .key-slot {
+            opacity: 0.2;
+            filter: grayscale(100%);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(0.9);
+        }
+
+        .key-slot.unlocked {
+            opacity: 1;
+            filter: grayscale(0%) drop-shadow(0 0 8px var(--color-gold));
+            transform: scale(1.2);
+        }
+
+        /* --- AREA DE RETOS --- */
+        .scenario-box {
+            background: #13162d;
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scenario-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--color-gold);
+        }
+
+        .scenario-tag {
+            font-size: 0.8rem;
+            color: var(--color-gold);
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        .scenario-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .challenge-question {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 130px;
+            padding: 14px;
+            background: var(--bg-space);
+            border: 2px solid var(--border-glow);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            resize: none;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+        }
+
+        .meta-counter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            font-size: 0.85rem;
+        }
+
+        .counter-msg {
+            color: var(--text-muted);
+        }
+
+        .counter-msg.met {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .err-banner {
+            color: var(--error);
+            font-weight: 600;
+            display: none;
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* --- MENSAJES TOAST NOTIFICATION DE LOGROS --- */
+        .toast-milestone {
+            position: absolute;
+            top: 20px; left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: linear-gradient(135deg, var(--bg-panel), #1e1b4b);
+            border: 2px solid var(--color-gold);
+            padding: 15px 30px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 15px rgba(245, 158, 11, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast-milestone.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* --- BOTONES ACCIÓN --- */
+        .btn-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: background 0.3s, color 0.3s;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
         }
 
-        .btn-reiniciar:hover {
-            background-color: #1a4329;
-            color: #d4a373;
-            border-color: #d4a373;
+        .btn-action:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
         }
 
-        /* Responsivo para pantallas móviles */
-        @media (max-width: 600px) {
-            #tablero-memoria {
-                grid-template-columns: repeat(2, 1fr); 
-                gap: 10px;
-            }
-            .carta {
-                height: 120px;
-            }
-            .cara-frente {
-                font-size: 0.85rem;
-                padding: 6px;
-            }
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        /* --- PANTALLA DE CIERRE Y TABLAS --- */
+        .summary-card {
+            background: var(--bg-space);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item p {
+            font-size: 0.95rem;
+            margin-top: 4px;
+            font-weight: bold;
+            color: var(--color-gold);
+        }
+
+        .table-scroller {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-glow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            background: #0d0f1d;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--border-glow);
+            vertical-align: top;
+        }
+
+        th {
+            background: var(--bg-input);
+            color: var(--color-gold);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        td.col-key {
+            font-weight: bold;
+            color: #fff;
+            width: 30%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        td.col-ans {
+            color: var(--text-muted);
+            line-height: 1.5;
+            white-space: pre-wrap;
+            width: 70%;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* CANVAS EXPORTACIÓN COULTO */
+        #renderCanvas {
+            display: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="contenedor-juego">
-        <h1>Símbolos Universitarios UAEMéx</h1>
-        <p>Actividad Interactiva: Encuentra el símbolo correspondiente con su descripción histórica.</p>
-
-        <div class="marcador">
-            Intentos: <span id="contador-intentos">0</span> | Parejas: <span id="contador-parejas">0/8</span>
+    <div class="escape-container">
+        
+        <!-- ELEMENTO INTERNO FLOTANTE PARA MENSAJES DE LOGROS (TOAST) -->
+        <div id="toast-achievement" class="toast-milestone">
+            <span style="font-size: 1.8rem;">🔑</span>
+            <div>
+                <b style="color: var(--color-gold); display: block; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">¡Logro desbloqueado!</b>
+                <span id="toast-text" style="font-size: 0.95rem; font-weight: 600;">Has conseguido la Llave</span>
+            </div>
         </div>
 
-        <div id="tablero-memoria"></div>
+        <!-- ================= PANTALLA INICIAL DE CONTROL ================= -->
+        <div id="screen-gate" class="screen active">
+            <div class="game-header">
+                <span class="room-icon">🚪</span>
+                <h1>Misión Escape: Atrapados en el Equipo Imposible</h1>
+                <h2>Tu equipo debe recuperar las 5 llaves de la colaboración para escapar.</h2>
+            </div>
 
-        <div>
-            <button class="btn-reiniciar" onclick="reiniciarJuego()">Reiniciar Tablero</button>
+            <div class="story-box">
+                Un grupo de estudiantes quedó atrapado dentro de una sala virtual creada por el <strong>Profesor Colaboratus</strong>. Para escapar deberán recuperar las 5 Llaves de la Colaboración. Cada llave se obtiene resolviendo un desafío basado en situaciones reales que ocurren en los equipos de trabajo.
+            </div>
+
+            <div class="input-block">
+                <label for="reg-name">Nombre completo del estudiante:</label>
+                <input type="text" id="reg-name" placeholder="Ej. Jésica Martínez García" autocomplete="off">
+            </div>
+
+            <div class="input-block">
+                <label for="reg-account">Número de cuenta institucional:</label>
+                <input type="text" id="reg-account" placeholder="Ej. 1726483" autocomplete="off">
+            </div>
+
+            <button id="btn-engage" class="btn-action" style="margin-top: 10px;">
+                <span>▶ Comenzar misión</span>
+            </button>
         </div>
+
+        <!-- ================= PANTALLA DE DESAFÍOS DE SALA (JUEGO) ================= -->
+        <div id="screen-room" class="screen">
+            <!-- PANEL INTEGRADO DE ESTADO (HUD) -->
+            <div class="hud-dashboard">
+                <div class="hud-item">
+                    <span class="hud-label">Progreso de Escape</span>
+                    <div class="bar-wrapper">
+                        <div id="progress-fill" class="bar-fill"></div>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">Cámara de Llaves</span>
+                    <div class="keys-row">
+                        <span class="key-slot" id="slot-k1">🔑</span>
+                        <span class="key-slot" id="slot-k2">🔑</span>
+                        <span class="key-slot" id="slot-k3">🔑</span>
+                        <span class="key-slot" id="slot-k4">🔑</span>
+                        <span class="key-slot" id="slot-k5">🔑</span>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">Tiempo Invertido</span>
+                    <span id="hud-clock" class="hud-timer">00:00</span>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR CENTRAL DE ESCENARIOS -->
+            <div class="scenario-box">
+                <div id="room-tag" class="scenario-tag">Cargando Reto...</div>
+                <div id="room-desc" class="scenario-text">Estructura del escenario simulado...</div>
+                
+                <div class="challenge-question">
+                    <span>💡</span>
+                    <span id="room-question">Pregunta crítica...</span>
+                </div>
+            </div>
+
+            <!-- CAPTURA DE REFLEXIÓN -->
+            <textarea id="room-input" placeholder="Escribe tu propuesta analítica de solución aquí... (Mínimo 40 caracteres)"></textarea>
+            
+            <div class="meta-counter-row">
+                <span id="room-counter" class="counter-msg">0 / 40 caracteres</span>
+                <span id="room-err" class="err-banner">⚠️ Requiere al menos 40 caracteres para activar la cerradura.</span>
+            </div>
+
+            <button id="btn-unlock" class="btn-action">
+                <span>🔓 Obtener llave</span>
+            </button>
+        </div>
+
+        <!-- ================= PANTALLA FINAL DE ESCAPE ================= -->
+        <div id="screen-victory" class="screen">
+            <div class="game-header">
+                <span class="room-icon" style="filter: drop-shadow(0 0 15px var(--color-gold));">🎉</span>
+                <h1 style="background: linear-gradient(135deg, #fff 40%, var(--color-gold) 100%); -webkit-background-clip: text;">MISIÓN COMPLETADA</h1>
+                <h2 style="color: var(--success); font-weight: bold;">¡Has recuperado todas las Llaves de la Colaboración y lograste escapar del Equipo Imposible!</h2>
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="hud-label">Estudiante</span>
+                        <p id="out-name">-</p>
+                    </div>
+                    <div class="summary-item">
+                        <span class="hud-label">Número de Cuenta</span>
+                        <p id="out-account">-</p>
+                    </div>
+                    <div class="summary-item">
+                        <span class="hud-label">Fecha de Cierre</span>
+                        <p id="out-date">-</p>
+                    </div>
+                    <div class="summary-item">
+                        <span class="hud-label">Tiempo de Fuga</span>
+                        <p id="out-time">00:00</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1rem; text-transform: uppercase; color: var(--color-gold); margin-bottom: 12px; letter-spacing: 0.5px;">Reporte Final de Llaves Obtenidas</h3>
+            
+            <div class="table-scroller">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Llave</th>
+                            <th>Respuesta y Propuesta de Solución</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-rows">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
+
+            <button id="btn-export" class="btn-action" style="background: linear-gradient(135deg, var(--success), #065f46); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                <span>📸 Descargar Evidencia</span>
+            </button>
+        </div>
+
     </div>
 
+    <!-- CANVAS OCULTO PARA EXPORTACIÓN AUTOMÁTICA -->
+    <canvas id="renderCanvas"></canvas>
+
+    <!-- ================= CONTROL DE LÓGICA Y GAMIFICACIÓN NATIVA ================= -->
     <script>
-        const datosCartas = [
-            { id: "escudo", texto: "Escudo de la UAEMéx" },
-            { id: "escudo", texto: "Emblema con el lema 'Patria, Ciencia y Trabajo' y la estrella verde de cinco puntas." },
-            
-            { id: "maestros", texto: "Monumento a los Maestros" },
-            { id: "maestros", texto: "Escultura ubicada en el Edificio de Rectoría que rinde homenaje a la labor de los docentes institutenses." },
-            
-            { id: "autonomia", texto: "Monumento a la Autonomía" },
-            { id: "autonomia", texto: "Obra titulada 'Tocando el Sol' que simboliza la libertad de cátedra e investigación ganada en 1944." },
-            
-            { id: "mora", texto: "Árbol de la Mora" },
-            { id: "mora", texto: "Testigo viviente de la historia universitaria en el patio central, plantado en el siglo XIX." },
-            
-            { id: "lopez-mateos", texto: "Cabeza de Adolfo López Mateos" },
-            { id: "lopez-mateos", texto: "Monumento de cantera esculpido por Adolfo Villa en lo alto del Cerro de Coatepec en Ciudad Universitaria." },
-            
-            { id: "himno", texto: "Himno Institucional" },
-            { id: "himno", texto: "Canto solemne escrito por Horacio Zúñiga y musicalizado por Felipe Villanueva que da identidad a la comunidad." },
-            
-            { id: "rectoria", texto: "Edificio Histórico de Rectoría" },
-            { id: "rectoria", texto: "Joya neoclásica en Toluca, antiguo Beaterio y sede del glorioso Instituto Científico y Literario." },
-            
-            { id: "naranjos", texto: "Jardín de los Naranjos" },
-            { id: "naranjos", texto: "Emblemático patio interior de Rectoría, espacio tradicional de reunión y vida académica." }
+        // --- BASE DE DATOS DE RETOS (ESCAPE ROOM) ---
+        const matrixRetos = [
+            {
+                id: "k1",
+                tag: "Reto 1: La Llave de la Comunicación",
+                desc: "El grupo de WhatsApp está lleno de mensajes. Un integrante nunca responde. Después dice: 'No sabía que tenía que hacer eso.'",
+                question: "¿Qué harías para mejorar la comunicación del equipo?",
+                toast: "Has conseguido la Llave de la Comunicación",
+                labelShort: "Comunicación"
+            },
+            {
+                id: "k2",
+                tag: "Reto 2: La Llave de la Responsabilidad",
+                desc: "Dos integrantes realizan todo el trabajo. Los demás apenas participan. Todos obtendrán la misma calificación.",
+                question: "¿Cómo actuarías para que la carga de trabajo fuera más justa?",
+                toast: "Has conseguido la Llave de la Responsabilidad",
+                labelShort: "Responsabilidad"
+            },
+            {
+                id: "k3",
+                tag: "Reto 3: La Llave de la Organización",
+                desc: "Un integrante entrega su parte el día de la exposición. Además contiene errores.",
+                question: "¿Qué medidas propondrías para evitar esta situación?",
+                toast: "Has conseguido la Llave de la Organización",
+                labelShort: "Organización"
+            },
+            {
+                id: "k4",
+                tag: "Reto 4: La Llave del Respeto",
+                desc: "Durante una reunión un compañero rechaza todas las ideas. No escucha a nadie.",
+                question: "¿Cómo promoverías una comunicación respetuosa?",
+                toast: "Has conseguido la Llave del Respeto",
+                labelShort: "Respeto"
+            },
+            {
+                id: "k5",
+                tag: "Reto 5: La Llave del Consenso",
+                desc: "Existen opiniones muy distintas. El equipo comienza a discutir.",
+                question: "¿Cómo ayudarías a tomar decisiones sin generar conflictos?",
+                toast: "Has conseguido la Llave del Consenso",
+                labelShort: "Consenso"
+            }
         ];
 
-        let cartasVolteadas = [];
-        let bloqueandoTablero = false;
-        let intentos = 0;
-        let parejasEncontradas = 0;
+        const frasesMotivacionales = [
+            "¡Excelente trabajo en equipo!",
+            "Cada respuesta te acerca a la salida.",
+            "La colaboración es la llave del éxito."
+        ];
 
-        function iniciarTablero() {
-            const tablero = document.getElementById("tablero-memoria");
-            tablero.innerHTML = ""; 
-            
-            let cartasBarajadas = [...datosCartas];
-            for (let i = cartasBarajadas.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [cartasBarajadas[i], cartasBarajadas[j]] = [cartasBarajadas[j], cartasBarajadas[i]];
-            }
+        // --- ESTADO GENERAL DEL JUEGO ---
+        let pointerIdx = 0;
+        let cronoSegundos = 0;
+        let cronoTicker = null;
+        let profileState = {
+            name: "",
+            account: "",
+            answers: {},
+            totalTimeStr: "00:00"
+        };
 
-            cartasBarajadas.forEach(data => {
-                const elementoCarta = document.createElement("div");
-                elementoCarta.classList.add("carta");
-                elementoCarta.dataset.simbolo = data.id;
-
-                elementoCarta.innerHTML = `
-                    <div class="cara-atras">UAEMéx</div>
-                    <div class="cara-frente">${data.texto}</div>
-                `;
-
-                elementoCarta.addEventListener("click", voltearCarta);
-                tablero.appendChild(elementoCarta);
-            });
+        // --- MOTOR DE SONIDO SINTETIZADO (WEB AUDIO API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function emitBeep(freq, shape, duration) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const nodeGain = audioCtx.createGain();
+                osc.type = shape;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                nodeGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                nodeGain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(nodeGain);
+                nodeGain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
         }
 
-        function voltearCarta() {
-            if (bloqueandoTablero) return; 
-            if (this === cartasVolteadas[0]) return; 
+        function triggerKeySound() {
+            emitBeep(440, "sine", 0.1);
+            setTimeout(() => emitBeep(554.37, "sine", 0.1), 80);
+            setTimeout(() => emitBeep(659.25, "sine", 0.25), 160);
+        }
 
-            this.classList.add("volteada");
+        function triggerFinishSound() {
+            emitBeep(523.25, "triangle", 0.15);
+            setTimeout(() => emitBeep(659.25, "triangle", 0.15), 120);
+            setTimeout(() => emitBeep(783.99, "triangle", 0.15), 240);
+            setTimeout(() => emitBeep(1046.50, "triangle", 0.4), 360);
+        }
 
-            if (cartasVolteadas.length === 0) {
-                cartasVolteadas.push(this);
+        // --- SISTEMA DE ALMACENAMIENTO (LOCALSTORAGE) ---
+        function commitSession() {
+            localStorage.setItem('escape_room_colaborativo_save', JSON.stringify(profileState));
+        }
+
+        function restoreSession() {
+            const data = localStorage.getItem('escape_room_colaborativo_save');
+            if (data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed && typeof parsed === 'object') {
+                        profileState = { ...profileState, ...parsed };
+                    }
+                } catch(e) {}
+            }
+        }
+
+        // --- SELECTORES DOM ---
+        const scrGate = document.getElementById('screen-gate');
+        const scrRoom = document.getElementById('screen-room');
+        const scrVictory = document.getElementById('screen-victory');
+
+        const inputName = document.getElementById('reg-name');
+        const inputAccount = document.getElementById('reg-account');
+        const btnEngage = document.getElementById('btn-engage');
+
+        const prgFill = document.getElementById('progress-fill');
+        const hudClock = document.getElementById('hud-clock');
+        const toastBox = document.getElementById('toast-achievement');
+        const toastText = document.getElementById('toast-text');
+
+        const rmTag = document.getElementById('room-tag');
+        const rmDesc = document.getElementById('room-desc');
+        const rmQuestion = document.getElementById('room-question');
+        const rmInput = document.getElementById('room-input');
+        const rmCounter = document.getElementById('room-counter');
+        const rmErr = document.getElementById('room-err');
+        const btnUnlock = document.getElementById('btn-unlock');
+
+        const outName = document.getElementById('out-name');
+        const outAccount = document.getElementById('out-account');
+        const outDate = document.getElementById('out-date');
+        const outTime = document.getElementById('out-time');
+        const reportRows = document.getElementById('report-rows');
+        const btnExport = document.getElementById('btn-export');
+
+        // --- CRONÓMETRO ---
+        function runTimer() {
+            cronoSegundos++;
+            const mins = String(Math.floor(cronoSegundos / 60)).padStart(2, '0');
+            const secs = String(cronoSegundos % 60).padStart(2, '0');
+            profileState.totalTimeStr = `${mins}:${secs}`;
+            hudClock.textContent = profileState.totalTimeStr;
+        }
+
+        // --- FLUJO DE CONTROL ---
+        btnEngage.addEventListener('click', () => {
+            const nVal = inputName.value.trim();
+            const aVal = inputAccount.value.trim();
+
+            if (!nVal || !aVal) {
+                alert("Por favor, introduce tu nombre y número de cuenta para iniciar la simulación.");
                 return;
             }
 
-            cartasVolteadas.push(this);
-            intentos++;
-            document.getElementById("contador-intentos").innerText = intentos;
+            profileState.name = nVal;
+            profileState.account = aVal;
+            commitSession();
 
-            verificarPareja();
-        }
+            // Identificar si existe progreso completo anterior
+            let stepPointer = 0;
+            for (let i = 0; i < matrixRetos.length; i++) {
+                const ans = profileState.answers[matrixRetos[i].id];
+                if (ans && ans.length >= 40) {
+                    stepPointer = i + 1;
+                } else {
+                    break;
+                }
+            }
 
-        function verificarPareja() {
-            const [carta1, carta2] = cartasVolteadas;
-            
-            if (carta1.dataset.simbolo === carta2.dataset.simbolo) {
-                marcarParejaCorrecta(carta1, carta2);
+            scrGate.classList.remove('active');
+            scrRoom.classList.add('active');
+
+            // Lanzar Ticker
+            cronoTicker = setInterval(runTimer, 1000);
+
+            if (stepPointer >= matrixRetos.length) {
+                renderVictoryLayout();
             } else {
-                ocultarCartasIncorrectas(carta1, carta2);
+                pointerIdx = stepPointer;
+                mountReto(pointerIdx);
+                refreshHUD();
             }
-        }
+        });
 
-        function marcarParejaCorrecta(carta1, carta2) {
-            carta1.classList.add("emparejada");
-            carta2.classList.add("emparejada");
+        function mountReto(idx) {
+            const ctx = matrixRetos[idx];
+            rmTag.textContent = ctx.tag;
+            rmDesc.textContent = ctx.desc;
+            rmQuestion.textContent = ctx.question;
             
-            carta1.removeEventListener("click", voltearCarta);
-            carta2.removeEventListener("click", voltearCarta);
+            const savedText = profileState.answers[ctx.id] || "";
+            rmInput.value = savedText;
+            evaluateInput(savedText);
+            rmErr.style.display = 'none';
+        }
 
-            parejasEncontradas++;
-            document.getElementById("contador-parejas").innerText = `${parejasEncontradas}/8`;
-
-            resetearSeleccion();
-
-            if (parejasEncontradas === 8) {
-                setTimeout(() => {
-                    alert(`¡Felicidades, docente! Has completado el tablero en ${intentos} intentos. ¡Excelente conocimiento de nuestra institución!`);
-                }, 500);
+        function evaluateInput(text) {
+            const totalChars = text.length;
+            rmCounter.textContent = `${totalChars} / 40 caracteres`;
+            if (totalChars >= 40) {
+                rmCounter.className = "counter-msg met";
+            } else {
+                rmCounter.className = "counter-msg";
             }
         }
 
-        function ocultarCartasIncorrectas(carta1, carta2) {
-            bloqueandoTablero = true;
+        rmInput.addEventListener('input', (e) => {
+            const txt = e.target.value;
+            profileState.answers[matrixRetos[pointerIdx].id] = txt;
+            commitSession();
+            evaluateInput(txt);
+        });
+
+        function refreshHUD() {
+            // Actualizar HUD de llaves basado en lo guardado
+            matrixRetos.forEach((r, i) => {
+                const slot = document.getElementById(`slot-${r.id}`);
+                const ans = profileState.answers[r.id];
+                if (ans && ans.length >= 40) {
+                    slot.classList.add('unlocked');
+                } else {
+                    slot.classList.remove('unlocked');
+                }
+            });
+
+            // Porcentaje
+            const pct = Math.round((pointerIdx / matrixRetos.length) * 100);
+            prgFill.style.width = `${pct}%`;
+        }
+
+        btnUnlock.addEventListener('click', () => {
+            const currentAns = (profileState.answers[matrixRetos[pointerIdx].id] || "").trim();
+            
+            if (currentAns.length < 40) {
+                rmErr.style.display = 'block';
+                emitBeep(220, "sawtooth", 0.2);
+                return;
+            }
+
+            rmErr.style.display = 'none';
+            triggerKeySound();
+
+            // Desbloquear llave visualmente inmediatamente
+            document.getElementById(`slot-${matrixRetos[pointerIdx].id}`).classList.add('unlocked');
+
+            // Mostrar Banner Flotante Gamificado (Toast)
+            toastText.textContent = matrixRetos[pointerIdx].toast;
+            toastBox.classList.add('visible');
+
+            // Avanzar Índice
+            pointerIdx++;
+            const pct = Math.round((pointerIdx / matrixRetos.length) * 100);
+            prgFill.style.width = `${pct}%`;
+
             setTimeout(() => {
-                carta1.classList.remove("volteada");
-                carta2.classList.remove("volteada");
-                resetearSeleccion();
-            }, 1500);
+                toastBox.classList.remove('visible');
+                
+                if (pointerIdx >= matrixRetos.length) {
+                    renderVictoryLayout();
+                } else {
+                    // Mostrar mensaje motivador aleatorio en consola o flujo transparente
+                    mountReto(pointerIdx);
+                }
+            }, 2200);
+        });
+
+        function renderVictoryLayout() {
+            clearInterval(cronoTicker);
+            scrRoom.classList.remove('active');
+            scrVictory.classList.add('active');
+            triggerFinishSound();
+
+            outName.textContent = profileState.name;
+            outAccount.textContent = profileState.account;
+            outTime.textContent = profileState.totalTimeStr;
+            outDate.textContent = new Date().toLocaleDateString('es-MX', {
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            reportRows.innerHTML = "";
+            matrixRetos.forEach(r => {
+                const tr = document.createElement('tr');
+                
+                const tdK = document.createElement('td');
+                tdK.className = "col-key";
+                tdK.innerHTML = `<span>🔑</span> <span>${r.labelShort}</span>`;
+
+                const tdA = document.createElement('td');
+                tdA.className = "col-ans";
+                tdA.textContent = profileState.answers[r.id] || "";
+
+                tr.appendChild(tdK);
+                tr.appendChild(tdA);
+                reportRows.appendChild(tr);
+            });
         }
 
-        function resetearSeleccion() {
-            cartasVolteadas = [];
-            bloqueandoTablero = false;
-        }
+        // --- SISTEMA NATIVO DE GENERACIÓN DE IMAGEN (CANVAS RENDER) ---
+        btnExport.addEventListener('click', () => {
+            const canvas = document.getElementById('renderCanvas');
+            const ctx = canvas.getContext('2d');
+            const baseWidth = 900;
+            
+            // Procesador de envoltura para simular celdas responsivas en lienzo plano
+            function injectWrappedText(context, text, x, startY, maxWidth, lineHeight) {
+                const words = text.split(' ');
+                let currentLine = '';
+                let y = startY;
 
-        function reiniciarJuego() {
-            intentos = 0;
-            parejasEncontradas = 0;
-            document.getElementById("contador-intentos").innerText = intentos;
-            document.getElementById("contador-parejas").innerText = "0/8";
-            iniciarTablero();
-        }
+                for (let n = 0; n < words.length; n++) {
+                    let testLine = currentLine + words[n] + ' ';
+                    if (context.measureText(testLine).width > maxWidth && n > 0) {
+                        context.fillText(currentLine, x, y);
+                        currentLine = words[n] + ' ';
+                        y += lineHeight;
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                context.fillText(currentLine, x, y);
+                return y + lineHeight;
+            }
 
-        window.onload = iniciarTablero;
+            // Cálculo dinámico previo de la altura requerida del lienzo resultante
+            ctx.font = "14px Arial";
+            let computedHeight = 350; // Cabecera + Meta bloque fijo
+            matrixRetos.forEach(r => {
+                computedHeight += 45; // Separador y Título de fila
+                const ansStr = profileState.answers[r.id] || "";
+                const words = ansStr.split(' ');
+                let line = '';
+                let lineCount = 1;
+                words.forEach(w => {
+                    let test = line + w + ' ';
+                    if (ctx.measureText(test).width > 760) {
+                        lineCount++;
+                        line = w + ' ';
+                    } else {
+                        line = test;
+                    }
+                });
+                computedHeight += (lineCount * 22) + 20;
+            });
+
+            canvas.width = baseWidth;
+            canvas.height = computedHeight;
+
+            // PINTAR FONDO GAMIFICADO
+            ctx.fillStyle = "#070913";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // DETALLES ESTÉTICOS TECNOLÓGICOS (LÍNEAS DE GRADIENTE)
+            let currentY = 50;
+            ctx.fillStyle = "#f59e0b";
+            ctx.font = "bold 13px Arial";
+            ctx.fillText("REPORTE DE LOGROS - ESCAPE ROOM DIGITAL", 50, currentY);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 24px Arial";
+            ctx.fillText("MISIÓN ESCAPE: ATRAPADOS EN EL EQUIPO IMPOSIBLE", 50, currentY += 30);
+
+            ctx.strokeStyle = "#312e81";
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(50, currentY += 15); ctx.lineTo(850, currentY); ctx.stroke();
+
+            // BLOQUE DE DATOS GENERALES DEL ESTUDIANTE
+            currentY += 25;
+            ctx.fillStyle = "#0f1123";
+            ctx.fillRect(50, currentY, 800, 100);
+            ctx.strokeRect(50, currentY, 800, 100);
+
+            ctx.fillStyle = "#f8fafc";
+            ctx.font = "15px Arial";
+            ctx.fillText(`Estudiante: ${profileState.name}`, 70, currentY + 30);
+            ctx.fillText(`Número de Cuenta: ${profileState.account}`, 70, currentY + 55);
+            ctx.fillText(`Fecha: ${outDate.textContent}`, 70, currentY + 80);
+            
+            ctx.fillStyle = "#a855f7";
+            ctx.font = "bold 14px Arial";
+            ctx.fillText(`Tiempo empleado: ${profileState.totalTimeStr}`, 530, currentY + 30);
+            ctx.fillStyle = "#f59e0b";
+            ctx.fillText("ESTADO: EVADIDO CON ÉXITO 🔓", 530, currentY + 55);
+
+            currentY += 140;
+
+            // ITERACIÓN DE RESPUESTAS ADQUIRIDAS
+            matrixRetos.forEach(r => {
+                // Encabezado de la celda del reto
+                ctx.fillStyle = "#171a34";
+                ctx.fillRect(50, currentY, 800, 32);
+                ctx.strokeStyle = "#312e81";
+                ctx.strokeRect(50, currentY, 800, 32);
+
+                ctx.fillStyle = "#f59e0b";
+                ctx.font = "bold 13px Arial";
+                ctx.fillText(`🔑  LLAVE DE LA ${r.labelShort.toUpperCase()}`, 65, currentY + 20);
+                
+                currentY += 45;
+
+                // Contenido de la propuesta explicada
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "15px Arial";
+                const ansText = profileState.answers[r.id] || "No se detectó registro de respuesta.";
+                currentY = injectWrappedText(ctx, ansText, 65, currentY, 760, 22);
+                currentY += 15;
+            });
+
+            // Registro de pie de verificación
+            ctx.fillStyle = "#312e81";
+            ctx.font = "11px Arial";
+            ctx.fillText("Evidencia digital autogenerada para la carpeta de evaluación formativa sobre Trabajo Colaborativo.", 50, canvas.height - 20);
+
+            // EMISIÓN AUTOMÁTICA DE ARCHIVO DE DESCARGA
+            const b64Str = canvas.toDataURL('image/png');
+            const hiddenAnchor = document.createElement('a');
+            const optimizedName = profileState.name.replace(/[^a-zA-Z0-9]/g, "_");
+            hiddenAnchor.download = `EscapeRoom_TrabajoColaborativo_${optimizedName}.png`;
+            hiddenAnchor.href = b64Str;
+            document.body.appendChild(hiddenAnchor);
+            hiddenAnchor.click();
+            document.body.removeChild(hiddenAnchor);
+        });
+
+        // --- CARGA E INICIALIZACIÓN ---
+        window.addEventListener('load', () => {
+            restoreSession();
+            if (profileState.name) inputName.value = profileState.name;
+            if (profileState.account) inputAccount.value = profileState.account;
+        });
     </script>
 </body>
 </html>
